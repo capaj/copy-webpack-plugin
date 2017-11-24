@@ -1,11 +1,13 @@
 import Promise from 'bluebird';
 import loaderUtils from 'loader-utils';
 import path from 'path';
+import cacache from 'cacache';
+import { version } from '../package.json';
 
 const fs = Promise.promisifyAll(require('fs')); // eslint-disable-line import/no-commonjs
 
 export default function writeFile(globalRef, pattern, file) {
-    const {info, debug, compilation, fileDependencies, written, copyUnmodified} = globalRef;
+    const {info, debug, compilation, fileDependencies, written, copyUnmodified, cacheDir} = globalRef;
 
     return fs.statAsync(file.absoluteFrom)
     .then((stat) => {
@@ -23,7 +25,32 @@ export default function writeFile(globalRef, pattern, file) {
         return fs.readFileAsync(file.absoluteFrom)
         .then((content) => {
             if (pattern.transform) {
-                content = pattern.transform(content, file.absoluteFrom);
+                const transform = (content, absoluteFrom) => {
+                    return pattern.transform(content, absoluteFrom);
+                };
+                const cacheKey = pattern.cacheKey
+                    ? pattern.cacheKey
+                    : JSON.stringify({
+                        'copy-webpack-plugin': version,
+                        pattern: pattern,
+                        content: content
+                    });
+
+                if (pattern.cache) {
+                    return cacache
+                        .get(cacheDir, cacheKey)
+                        .then(({ data }) => {
+                            return JSON.parse(data);
+                        }, () => {
+                            content = transform(content, file.absoluteFrom);
+
+                            return cacache
+                              .put(cacheDir, cacheKey, JSON.stringify(content))
+                              .then(() => content);
+                        });
+                }
+
+                content = transform(content, file.absoluteFrom);
             }
 
             return content;

@@ -3,6 +3,7 @@ import path from 'path';
 import _ from 'lodash';
 import preProcessPattern from './preProcessPattern';
 import processPattern from './processPattern';
+import findCacheDir from 'find-cache-dir';
 
 function CopyWebpackPlugin(patterns = [], options = {}) {
     if (!Array.isArray(patterns)) {
@@ -89,6 +90,10 @@ function CopyWebpackPlugin(patterns = [], options = {}) {
             }
 
             Promise.each(patterns, (pattern) => {
+                if (pattern.cache && !globalRef.cacheDir) {
+                    globalRef.cacheDir = findCacheDir({ name: 'copy-webpack-plugin' });
+                }
+
                 // Identify absolute source of each pattern and destination type
                 return preProcessPattern(globalRef, pattern)
                 .then((pattern) => {

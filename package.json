@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "bluebird": "^3.5.1",
+    "cacache": "^10.0.1",
+    "find-cache-dir": "^1.0.0",
     "glob": "^7.1.2",
     "is-glob": "^4.0.0",
     "loader-utils": "^0.2.15",
